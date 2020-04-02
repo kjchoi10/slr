@@ -1,0 +1,2 @@
+# slr
+seasonal linear regression
