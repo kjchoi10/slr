@@ -4,6 +4,7 @@ from itertools import cycle
 import pandas as pd
 import numpy as np
 import datetime as dt
+import math
 
 def fit_slr()
 
@@ -52,14 +53,14 @@ def _slr(
 
    return()
 
- # model using statsmodel
+# model using statsmodel
 import statsmodels.api as sm
 from itertools import cycle
 import numpy as np
 import pandas as pd
 import math
 
-def slr(df, forecast_length, n_season, trend_dampening):
+def slr(df, input_endog, input_exog, forecast_length, n_season, trend_dampening):
   """
   :params df: pandas time series with seasonal index calculated
   :params forecast_length: integer for length forecast
@@ -67,6 +68,64 @@ def slr(df, forecast_length, n_season, trend_dampening):
   :params trend_damp: float number where 1 is default
   :return: model object, forecast
   """
+  df = moving_average_pre_process(df, input_endog, input_exog, n_season)
+
+  # seasonal irregular value
+  df['season_irregular'] = df[input_exog]/df['m_a_centered']
+
+  # extend the rest of the season with the latest m_a value / or for now we can just replace NAN values with 1 which is trend
+  seasonal_index = df.groupby('month_number').agg({'season_irregular': 'mean'}).fillna(1).reset_index().rename({'season_irregular': 'seasonal_index'}, axis = 1)
+  d = pd.merge(df, seasonal_index, on = ['month_number'])
+
+  # sort months
+  d = d.sort_values(by='month')
+
+  # period calculation
+  d[input_endog] = range(len(d))
+
+  d = d.reset_index()
+
+  # regression
+  df = d
+
+  X = df[input_endog]
+  X = sm.add_constant(X)
+  y = df[input_exog]
+
+  model = sm.OLS(y, X)
+  res = model.fit()
+
+  # dampen the beta coefficent
+  res.params[1] = res.params[1]*trend_dampening
+
+  # prediction input (period)
+  forecast_period = np.array(range(len(df)+forecast_length))
+
+  # intercept
+  forecast_constant = np.ones_like(forecast_period)
+
+  # create prediction input
+  forecast_input = np.column_stack((forecast_constant, forecast_period))
+
+  # list of forecasts including in-sample and out-sample
+  forecast_set = model.predict(res.params, forecast_input)
+
+  # forecast dataframe
+  forecast_output = pd.DataFrame({input_endog: forecast_period, 'forecast': forecast_set})
+
+  # Adjusted period for repeating 0-12 months
+  seq = cycle(range(n_season))
+
+  forecast_output['period_adj'] = [next(seq) for count in range(forecast_output.shape[0])]
+
+  # Right join seasonal index
+  forecast_output = forecast_output.merge(df[['seasonal_index', input_endog]], left_on='period_adj', right_on=input_endog, how='left')
+
+   # Forecast adjusted based on the period and seasonal index
+  forecast_output['forecast_adj'] = forecast_output['forecast'] * forecast_output['seasonal_index']
+
+  return(res, forecast_output, df)
+def moving_average_pre_process(df, input_endog, input_exog, n_season):
   # available seasons
   n_k = len(df)/n_season
 
@@ -80,7 +139,7 @@ def slr(df, forecast_length, n_season, trend_dampening):
   n_season = 12
 
   # moving average
-  m_a = df['training_response'].rolling(window=n_season).mean().dropna().tolist()
+  m_a = df[input_exog].rolling(window=n_season).mean().dropna().tolist()
 
   # centered moving average
   #m_a_centered = m_a.rolling(window=2).mean().dropna().tolist()
@@ -119,62 +178,7 @@ def slr(df, forecast_length, n_season, trend_dampening):
   # add centered moving average starting at midpoint index
   df.loc[df.index[int(midpoint):int(midpoint)+len(m_a)], 'm_a_centered'] = m_a
 
-  # seasonal irregular value
-  df['season_irregular'] = df['training_response']/df['m_a_centered']
-
-  # extend the rest of the season with the latest m_a value / or for now we can just replace NAN values with 1 which is trend
-  seasonal_index = df.groupby('month_number').agg({'season_irregular': 'mean'}).fillna(1).reset_index().rename({'season_irregular': 'seasonal_index'}, axis = 1)
-  d = pd.merge(df, seasonal_index, on = ['month_number'])
-
-  # sort months
-  d = d.sort_values(by='month')
-
-  # period calculation
-  d['period'] = range(len(d))
-
-  d = d.reset_index()
-
-  # regression
-  df = d
-
-  X = df['period']
-  X = sm.add_constant(X)
-  y = df['training_response']
-
-  model = sm.OLS(y, X)
-  res = model.fit()
-
-  # dampen the beta coefficent
-  res.params[1] = res.params[1]*trend_dampening
-
-  # prediction input (period)
-  forecast_period = np.array(range(len(df)+forecast_length))
-
-  # intercept
-  forecast_constant = np.ones_like(forecast_period)
-
-  # create prediction input
-  forecast_input = np.column_stack((forecast_constant, forecast_period))
-
-  # list of forecasts including in-sample and out-sample
-  forecast_set = model.predict(res.params, forecast_input)
-
-  # forecast dataframe
-  forecast_output = pd.DataFrame({'period': forecast_period, 'forecast': forecast_set})
-
-  # Adjusted period for repeating 0-12 months
-  seq = cycle(range(n_season))
-
-  forecast_output['period_adj'] = [next(seq) for count in range(forecast_output.shape[0])]
-
-  # Right join seasonal index
-  forecast_output = forecast_output.merge(df[['seasonal_index', 'period']], left_on='period_adj', right_on='period', how='left')
-
-   # Forecast adjusted based on the period and seasonal index
-  forecast_output['forecast_adj'] = forecast_output['forecast'] * forecast_output['seasonal_index']
-
-  return(res, forecast_output, df)
-
+  return(df)
 
 def moving_average_estimate(y, X, forecast_period):
   X = sm.add_constant(X)
