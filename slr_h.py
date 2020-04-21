@@ -22,28 +22,13 @@ def slr(
 
     ak_list = [sum(ts_list[i])/len(ts_list[i]) for i in range(0, len(ts_list))]
 
-    s_list = list()
+    s_list = [ts_list[i]/ak_list[i] for i in range(len(ak_list))]
 
-    # try to not include the sum averages
-    if int(nk) == nk:
-      for i in range(len(a_list)):
-        s_list.append(ts_list[i] / a_list[i])
+    s_avg = [np.mean([s[i] for s in s_list if len(s) > i]) for i in range(len(max(s_list,key=len)))]
 
-    if int(nk) != nk:
-
-      for i in range(len(a_list) - 1):
-        s_list.append(ts_list[i] / a_list[i])
-
-      s_avg = sum(s_list)/len(s_list)
-      s_last = ts_list[-1] / a_list[-1]
-      s_last = np.concatenate([s_last, s_avg[len(s_last):]])
-      s_list.append(s_last)
-
-    s_avg = sum(s_list)/int(nk + 1)
     s_avg_s = s_avg * smooth_factor
 
     ts_new = ts * np.resize(s_avg_s, len(ts))
-
 
     trend_dampening = 1.0
 
