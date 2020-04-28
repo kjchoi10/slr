@@ -41,6 +41,8 @@ def fit_slr(
         :param forecast_exog_var:
         :return:
         """
+        model = 'slr'
+        
         if time_series_class == 'near_disco':
 
                 if time_grain == 'week':
@@ -53,7 +55,7 @@ def fit_slr(
                                                 input_endog = input_endog,
                                                 n_season = seasonal_periods,
                                                 forecast_length = forecast_length,
-                                                smooth_factor = 0.7,
+                                                smooth_factor = 1.0,
                                                 trend_dampening = 0.5)
 
                     slr_model = slr_training_result['model']
@@ -65,7 +67,7 @@ def fit_slr(
                     slr_model = None
                     slr_fittedvalues = None
                     slr_forecast = None
-                    error_logger.error('error in model fit for ' + slr_model + ' ' + ' '.join(data_name) + ' with error ' + str(e))
+                    error_logger.error('error in model fit for ' + model + ' ' + ' '.join(data_name) + ' with error ' + str(e))
 
         else:
 
@@ -90,7 +92,6 @@ def slr(
     nk = n_total/n_season
 
     # Exog
-    #ts = list(input_data[input_exog].values)
     ts = input_endog.values
 
     # List of exog per season
