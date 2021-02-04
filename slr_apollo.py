@@ -42,7 +42,7 @@ def fit_slr(
         :return:
         """
         model = 'slr'
-        
+
         if time_series_class == 'near_disco':
 
                 if time_grain == 'week':
@@ -115,7 +115,9 @@ def slr(
     # Regression model
     X = range(0, len(ts))
     X = statsmodels.api.add_constant(X)
-    y = ts
+    #y = ts
+    # Changed to take out seasonality from time series before fitting regression
+    y = ts/numpy.resize(s_avg_s, len(ts))
     model = statsmodels.api.OLS(y, X)
     res = model.fit()
 
