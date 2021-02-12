@@ -7,13 +7,22 @@ class boosted_slr:
                  n_season,
                  forecast_length,
                  smooth_factor,
-                 trend_dampening)
+                 trend_dampening,
+                 model_type,
+                 boost,
+                 boost_iter)
                 
                 self.n_season = 12
-                self.forecast_length = 
-                self.trend
+                self.forecast_length = 12
+                self.smooth_factor = 1
+                self.trend_dampening = 1
+                self.boost = 'yes'
+                self.boost_iter = 5
+
+
 
     def get_avg_seasonal_idx(
+                            self,
                             ts_list,
                             smooth_factor):
         # List of average exog per season
@@ -34,13 +43,14 @@ class boosted_slr:
         return(s_avg_s)
 
 
-    def fit_boosted_slr(
+    def fit_slr(
+            self,
             input_endog,
             n_season,
             forecast_length,
             smooth_factor,
             trend_dampening,
-            add_or_mult_model,
+            model_type,
             boost,
             boost_iter
         ):
@@ -61,7 +71,7 @@ class boosted_slr:
                                         ts_list = ts_list,
                                         smooth_factor = 1.0)
 
-        if(add_or_mult_model = 'add'):
+        if(model_type = 'add'):
 
             # Regression model (add)
             X = range(0, len(ts))
@@ -75,7 +85,7 @@ class boosted_slr:
                 res = model.fit()
                 coef = model.params
 
-        if(add_or_mult_model = 'mult'):
+        if(model_type = 'mult'):
             
             # Regression model (mult)
             X = range(0, len(ts))
@@ -107,10 +117,11 @@ class boosted_slr:
                 coefs = coefs + .2*res.params
         
 
-        # Forecasted regression  model
+        # Forecasted regression  model/prediction
         X_forecast = range(0, len(ts)+forecast_length)
         X_forecast = statsmodels.api.add_constant(X_forecast)
         yhat = model.predict(coefs, X_forecast)
+        # why do we want this?
         y_pred = yhat * numpy.resize(s_avg_s, len(yhat))
 
         # forecast in sample
