@@ -2,7 +2,8 @@ import statsmodels.api
 import pandas
 import numpy
 
-class boosted_slr:
+class slr:
+    
     def __init__(self,
                  input_endog,
                  n_season,
@@ -47,7 +48,7 @@ class boosted_slr:
         return(s_avg_s)
 
 
-    def fit_slr(self):
+    def fit(self):
         # Number of available time periods
         n_total = len(self.input_endog)
 
@@ -61,8 +62,7 @@ class boosted_slr:
         ts_list = [ts[i:i + self.n_season] for i in range(0, len(ts), self.n_season)]
 
         # Calculate seasonal indices for time series
-        s_avg_s = get_avg_seasonal_idx(
-                                        self,
+        s_avg_s = self.get_avg_seasonal_idx(
                                         ts_list = ts_list,
                                         nk = nk,
                                         smooth_factor = 1.0)
@@ -77,9 +77,9 @@ class boosted_slr:
 
             # Baseline seasonal linear regression
             if(self.boost != 'yes'):
-                model = stats.models.api.OLS(y, X)
+                model = statsmodels.api.OLS(y, X)
                 res = model.fit()
-                coef = model.params
+                coef = res.params
 
         if(self.model_type == 'mult'):
             
@@ -91,9 +91,9 @@ class boosted_slr:
             
             # Baseline seasonal linear regression
             if(self.boost != True):
-                model = stats.models.api.OLS(y, X)
+                model = statsmodels.api.OLS(y, X)
                 res = model.fit()
-                coef = model.params
+                coef = res.params
 
 
         if(self.boost == True):
@@ -114,7 +114,7 @@ class boosted_slr:
         
 
         # Forecasted regression  model/prediction
-        X_forecast = range(0, len(ts)+forecast_length)
+        X_forecast = range(0, len(ts)+self.forecast_length)
         X_forecast = statsmodels.api.add_constant(X_forecast)
         yhat = model.predict(coefs, X_forecast)
         # why do we want this?

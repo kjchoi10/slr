@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import quandl
 import matplotlib.pyplot as plt
-import slr_boosted
+import seasonal_linear_regression
 data = quandl.get("BITSTAMP/USD")
 
 y = data['Low']
@@ -14,18 +14,23 @@ df['ds'] = y.index
 #adjust to make ready for Prophet
 df.columns = ['y', 'ds']
 
-boosted_slr_obj = slr_boosted.trend_boosted_slr(
+model = seasonal_linear_regression.slr(
         input_endog = df['y'],
         n_season = 12,
-        forecast_length = 12,
-        smooth_factor = 0.5,
-        trend_dampening = 0.5
+        forecast_length = 150,
+        smooth_factor = 1,
+        trend_dampening = 1,
+        model_type = 'mult',
+        boost = True,
+        boost_iter = 5
     )
 
-model = boosted_slr_obj['model']
-in_sample = boosted_slr_obj['in_sample_forecast']
-out_sample = boosted_slr_obj['out_of_sample_forecast']
-trend = boosted_slr_obj['trend']
+boosted_slr = model.fit()
+
+model = boosted_slr['model']
+in_sample = boosted_slr['in_sample_forecast']
+out_sample = boosted_slr['out_of_sample_forecast']
+trend = boosted_slr['trend']
 
 plt.plot(np.append(in_sample, out_sample), label = 'slr_boosted')
 plt.plot(trend, label = 'trend')
