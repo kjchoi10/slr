@@ -15,13 +15,31 @@ class slr:
                  boost_iter):
                 
                 self.input_endog = input_endog
-                self.n_season = 12
-                self.forecast_length = 12
-                self.smooth_factor = 1
-                self.trend_dampening = 1
-                self.model_type = 'add'
-                self.boost = True
-                self.boost_iter = 5
+                self.n_season = n_season
+                self.forecast_length = forecast_length
+
+                if(smooth_factor is None):
+                    self.smooth_factor = 1
+                else:
+                    self.smooth_factor = smooth_factor
+                if(trend_dampening is None):
+                    self.trend_dampening = 1
+                else:
+                    self.trend_dampening = trend_dampening              
+                if(model_type is None):
+                    self.model_type = 'mult'
+                else:
+                    self.model_type = model_type
+
+                if(boost is None):
+                    self.boost = True
+                else:
+                    self.boost = boost
+
+                if(boost_iter is None):
+                    self.boost_iter = 10
+                else:
+                    self.boost_iter = boost_iter 
 
                 return
 
@@ -97,7 +115,6 @@ class slr:
 
 
         if(self.boost == True):
-
             # Boosting
             boosted_data = y
             boosted_output = numpy.zeros(len(y))
