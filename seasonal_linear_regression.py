@@ -80,7 +80,7 @@ class slr:
         ts_list = [ts[i:i + self.n_season] for i in range(0, len(ts), self.n_season)]
 
         # Calculate seasonal indices for time series
-        s_avg_s = self.get_avg_seasonal_idx(
+        self.s_avg_s = self.get_avg_seasonal_idx(
                                         ts_list = ts_list,
                                         nk = nk,
                                         smooth_factor = 1.0)
@@ -91,7 +91,7 @@ class slr:
             X = range(0, len(ts))
             X = statsmodels.api.add_constant(X)
             # Changed to take out seasonality from time series before fitting regression
-            y = ts - numpy.resize(s_avg_s, len(ts))
+            y = ts - numpy.resize(self.s_avg_s, len(ts))
 
             # Baseline seasonal linear regression
             if(self.boost != 'yes'):
@@ -105,7 +105,7 @@ class slr:
             X = range(0, len(ts))
             X = statsmodels.api.add_constant(X)
             # Changed to take out seasonality from time series before fitting regression
-            y = ts/numpy.resize(s_avg_s, len(ts))
+            y = ts/numpy.resize(self.s_avg_s, len(ts))
             
             # Baseline seasonal linear regression
             if(self.boost != True):
@@ -128,26 +128,46 @@ class slr:
                 boosted_output =  boosted_output + .2*fitted
                 boosted_data = y - boosted_output
                 coefs = coefs + .2*res.params
-        
-
+        self.model = model
+        self.coefs = coefs
         # Forecasted regression  model/prediction
-        X_forecast = range(0, len(ts)+self.forecast_length)
-        X_forecast = statsmodels.api.add_constant(X_forecast)
-        yhat = model.predict(coefs, X_forecast)
+        # X_forecast = range(0, len(self.ts)+self.forecast_length)
+        # X_forecast = statsmodels.api.add_constant(X_forecast)
+        # yhat = model.predict(coefs, X_forecast)
         # why do we want this?
-        y_pred = yhat * numpy.resize(s_avg_s, len(yhat))
+        # y_pred = yhat * numpy.resize(s_avg_s, len(yhat))
 
         # forecast in sample
-        frc_in = y_pred[:len(ts)]
+        # frc_in = y_pred[:len(ts)]
 
         # forecast out sample
-        frc_out = y_pred[len(ts):]
+        # frc_out = y_pred[len(ts):]
+
+        return
+
+    def predict(self):
+        # X values to include ts and forecast
+        X = range(0, len(self.input_endog.values)+self.forecast_length)
+
+        # Time as the variable in regression
+        X = statsmodels.api.add_constant(X)
+
+        # Predicted Y
+        yhat = self.model.predict(self.coefs, X)
+
+        # Predict Y adjusted with seasonal index
+        y_adj = yhat * numpy.resize(self.s_avg_s, len(yhat))
+
+        # forecast in sample
+        frc_in = y_adj[:len(self.input_endog.values)]
+
+        # forecast out sample
+        frc_out = y_adj[len(self.input_endog.values):]
 
         return_dictionary = {
-                                'model':                    model,
-                                'in_sample_forecast':       pandas.Series(frc_in),
-                                'out_of_sample_forecast':   pandas.Series(frc_out),
-                                'trend':                    yhat
+                            'in_sample_forecast':       pandas.Series(frc_in),
+                            'out_of_sample_forecast':   pandas.Series(frc_out),
+                            'trend':                    yhat
                             }
 
         return return_dictionary
