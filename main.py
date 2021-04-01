@@ -22,12 +22,12 @@ model = seasonal_linear_regression.slr(
         trend_dampening = 1,
         model_type = 'mult',
         boost = True,
-        boost_iter = 5
+        boost_iter = 10
     )
 
-boosted_slr = model.fit()
+model.fit()
+boosted_slr = model.predict()
 
-model = boosted_slr['model']
 in_sample = boosted_slr['in_sample_forecast']
 out_sample = boosted_slr['out_of_sample_forecast']
 trend = boosted_slr['trend']

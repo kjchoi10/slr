@@ -128,6 +128,7 @@ class slr:
                 boosted_output =  boosted_output + .2*fitted
                 boosted_data = y - boosted_output
                 coefs = coefs + .2*res.params
+                
         self.model = model
         self.coefs = coefs
         # Forecasted regression  model/prediction
